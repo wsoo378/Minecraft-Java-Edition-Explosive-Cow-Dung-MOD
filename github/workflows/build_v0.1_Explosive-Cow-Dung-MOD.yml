@@ -1,0 +1,47 @@
+name: Build Explosive Cow Dung
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 发布 Release 需要
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: 配置 Gradle（自带缓存）
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 给 gradlew 执行权限
+        run: chmod +x gradlew
+
+      - name: 构建
+        run: ./gradlew build --no-daemon
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Explosive-Cow-Dung
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+      # 推送形如 v1.0.0 的 tag 时，自动创建 Release 并附上 jar
+      - name: 发布 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
