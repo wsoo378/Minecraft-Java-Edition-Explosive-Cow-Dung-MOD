@@ -17,6 +17,29 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v4
 
+      # ================= 新增：自动解压逻辑 =================
+      - name: 解压 MDK 压缩包
+        run: |
+          # 寻找根目录下的 zip 文件并解压
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "未找到 zip 文件，假设文件已经解压好"
+            exit 0
+          fi
+          echo "找到压缩包: $ZIP_FILE"
+          unzip -q "$ZIP_FILE"
+          
+          # 检查解压后是否产生了一个单独的文件夹（MDK通常会有）
+          DIR_NAME=$(find . -maxdepth 1 -type d ! -name "." ! -name ".github" | head -n 1)
+          if [ -n "$DIR_NAME" ]; then
+            echo "将 $DIR_NAME 内的文件移至根目录..."
+            mv "$DIR_NAME"/* .
+            mv "$DIR_NAME"/.[!.]* . 2>/dev/null || true  # 移动隐藏文件（如 .gitignore）
+            rmdir "$DIR_NAME"
+          fi
+          rm "$ZIP_FILE"
+      # ======================================================
+
       - name: 安装 JDK 21
         uses: actions/setup-java@v4
         with:
